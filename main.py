@@ -22,6 +22,7 @@ import seaborn as sns
 import torch.nn.init as init
 import pickle
 
+import torch.nn.utils.prune as prune
 # Custom Libraries
 import utils
 
@@ -69,7 +70,6 @@ def main(args, ITE=0):
     test_loader = torch.utils.data.DataLoader(testdataset, batch_size=args.batch_size, shuffle=False, num_workers=0,drop_last=True)
     
     # Importing Network Architecture
-    global model
     if args.arch_type == "fc1":
        model = fc1.fc1().to(device)
     elif args.arch_type == "fc3":
@@ -108,7 +108,7 @@ def main(args, ITE=0):
     torch.save(model, os.path.join(output_dir, f"initial_state_dict_{args.prune_type}.pth.tar"))
 
     # Making Initial Mask
-    make_mask(model, use_model)
+    # make_mask(model, use_model)
 
     # Optimizer and Loss
     optimizer = torch.optim.Adam(model.parameters(), weight_decay=args.weight_decay)
@@ -133,33 +133,12 @@ def main(args, ITE=0):
 
     for _ite in range(args.start_iter, ITERATION):
         if not _ite == 0:
-            prune_by_percentile(args.prune_percent, resample=resample, reinit=reinit)
+            utils.pruning_generate(model, args.prune_percent)
             if reinit:
                 model.apply(weight_init)
-                #if args.arch_type == "fc1":
-                #    model = fc1.fc1().to(device)
-                #elif args.arch_type == "lenet5":
-                #    model = LeNet5.LeNet5().to(device)
-                #elif args.arch_type == "alexnet":
-                #    model = AlexNet.AlexNet().to(device)
-                #elif args.arch_type == "vgg16":
-                #    model = vgg.vgg16().to(device)  
-                #elif args.arch_type == "resnet18":
-                #    model = resnet.resnet18().to(device)   
-                #elif args.arch_type == "densenet121":
-                #    model = densenet.densenet121().to(device)   
-                #else:
-                #    print("\nWrong Model choice\n")
-                #    exit()
-                step = 0
-                for name, param in model.named_parameters():
-                    if 'weight' in name:
-                        weight_dev = param.device
-                        param.data = torch.from_numpy(param.data.cpu().numpy() * mask[step]).to(weight_dev)
-                        step = step + 1
-                step = 0
             else:
-                original_initialization(mask, initial_state_dict)
+                model_state_dict = utils.rewind_weight(initial_state_dict, model.state_dict())
+                model.load_state_dict(model_state_dict)
             optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         print(f"\n--- Pruning Level [{ITE}:{_ite}/{ITERATION}]: ---")
 
@@ -213,12 +192,6 @@ def main(args, ITE=0):
         all_loss.dump(os.path.join(dump_dir, f"{args.prune_type}_all_loss_{comp1}.dat"))
         all_accuracy.dump(os.path.join(dump_dir, f"{args.prune_type}_all_accuracy_{comp1}.dat"))
         
-        # Dumping mask
-        # utils.checkdir(f"{os.getcwd()}/dumps/lt/{args.arch_type}/{args.dataset}/")
-        mask_path = os.path.join(os.path.join(dump_dir, f"{args.prune_type}_mask_{comp1}.pkl"))
-        with open(mask_path, 'wb') as fp:
-            pickle.dump(mask, fp)
-        
         # Making variables into 0
         best_accuracy = 0
         all_loss = np.zeros(args.end_iter,float)
@@ -251,19 +224,10 @@ def train(model, train_loader, optimizer, criterion):
     model.train()
     for batch_idx, (imgs, targets) in enumerate(train_loader):
         optimizer.zero_grad()
-        #imgs, targets = next(train_loader)
         imgs, targets = imgs.to(device), targets.to(device)
         output = model(imgs)
         train_loss = criterion(output, targets)
         train_loss.backward()
-
-        # Freezing Pruned weights by making their gradients Zero
-        for name, p in model.named_parameters():
-            if 'weight' in name:
-                tensor = p.data.cpu().numpy()
-                grad_tensor = p.grad.data.cpu().numpy()
-                grad_tensor = np.where(tensor < EPS, 0, grad_tensor)
-                p.grad.data = torch.from_numpy(grad_tensor).to(device)
         optimizer.step()
     return train_loss.item()
 
@@ -283,65 +247,6 @@ def test(model, test_loader, criterion):
         test_loss /= len(test_loader.dataset)
         accuracy = 100. * correct / len(test_loader.dataset)
     return accuracy
-
-# Prune by Percentile module
-def prune_by_percentile(percent, resample=False, reinit=False,**kwargs):
-        global step
-        global mask
-        global model
-
-        # Calculate percentile value
-        step = 0
-        for name, param in model.named_parameters():
-
-            # We do not prune bias term
-            if 'weight' in name:
-                tensor = param.data.cpu().numpy()
-                alive = tensor[np.nonzero(tensor)] # flattened array of nonzero values
-                percentile_value = np.percentile(abs(alive), percent)
-
-                # Convert Tensors to numpy and calculate
-                weight_dev = param.device
-                new_mask = np.where(abs(tensor) < percentile_value, 0, mask[step])
-                
-                # Apply new weight and mask
-                param.data = torch.from_numpy(tensor * new_mask).to(weight_dev)
-                mask[step] = new_mask
-                step += 1
-        step = 0
-
-# Function to make an empty mask of the same size as the model
-def make_mask(model, use_model):
-    global step
-    global mask
-    step = 0
-    for name, param in model.named_parameters(): 
-        if 'weight' in name:
-            step = step + 1
-    mask = [None]* step 
-    step = 0
-    for name, param in model.named_parameters(): 
-        if 'weight' in name:
-            tensor = param.data.cpu().numpy()
-            if use_model:
-                mask[step] = (tensor != 0.0).astype(tensor.dtype)
-            else:
-                mask[step] = np.ones_like(tensor)
-            step = step + 1
-    step = 0
-
-def original_initialization(mask_temp, initial_state_dict):
-    global model
-    
-    step = 0
-    for name, param in model.named_parameters(): 
-        if "weight" in name: 
-            weight_dev = param.device
-            param.data = torch.from_numpy(mask_temp[step] * initial_state_dict[name].cpu().numpy()).to(weight_dev)
-            step = step + 1
-        if "bias" in name:
-            param.data = initial_state_dict[name]
-    step = 0
 
 # Function for Initialization
 def weight_init(m):

@@ -1,6 +1,8 @@
 #ANCHOR Libraries
 import numpy as np
 import torch
+import torch.nn as nn
+import torch.nn.utils.prune as prune
 import os
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -18,22 +20,7 @@ def print_nonzeros(model):
         print(f'{name:20} | nonzeros = {nz_count:7} / {total_params:7} ({100 * nz_count / total_params:6.2f}%) | total_pruned = {total_params - nz_count :7} | shape = {tensor.shape}')
     print(f'alive: {nonzero}, pruned : {total - nonzero}, total: {total}, Compression rate : {total/nonzero:10.2f}x  ({100 * (total-nonzero) / total:6.2f}% pruned)')
     return (round((nonzero/total)*100,1))
-
-def original_initialization(mask_temp, initial_state_dict):
-    global model
-    
-    step = 0
-    for name, param in model.named_parameters(): 
-        if "weight" in name: 
-            weight_dev = param.device
-            param.data = torch.from_numpy(mask_temp[step] * initial_state_dict[name].cpu().numpy()).to(weight_dev)
-            step = step + 1
-        if "bias" in name:
-            param.data = initial_state_dict[name]
-    step = 0
-
         
-
 
 #ANCHOR Checks of the directory exist and if not, creates a new directory
 def checkdir(directory):
@@ -89,3 +76,31 @@ def plot_train_test_stats(stats,
         plt.savefig(savefig, bbox_inches='tight')
     else:
         plt.show()
+
+
+def rewind_weight(model_dict, target_model_dict_keys):
+
+    new_dict = {}
+    for key in target_model_dict_keys:
+        if 'mask' not in key:
+            if 'orig' in key:
+                ori_key = key[:-5]
+            else:
+                ori_key = key 
+            new_dict[key] = model_dict[ori_key]
+
+    return new_dict
+
+def pruning_generate(model,px):
+
+    parameters_to_prune =[]
+    for m in model.modules():
+        if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
+            parameters_to_prune.append((m,'weight'))
+
+    parameters_to_prune = tuple(parameters_to_prune)
+    prune.global_unstructured(
+        parameters_to_prune,
+        pruning_method=prune.L1Unstructured,
+        amount=px,
+    )

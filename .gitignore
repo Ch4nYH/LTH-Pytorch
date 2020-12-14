@@ -3,3 +3,10 @@
 /plots
 /runs
 /saves
+/vis
+/vis_2
+/vis_3
+/mnist
+/mnist_1
+*.zip
+*.jpg
