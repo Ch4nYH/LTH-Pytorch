@@ -137,7 +137,9 @@ def main(args, ITE=0):
             if reinit:
                 model.apply(weight_init)
             else:
-                model_state_dict = utils.rewind_weight(model.state_dict(), initial_state_dict,)
+                model_state_dict = model.state_dict()
+                model_orig_weight = utils.rewind_weight(initial_state_dict, model_state_dict.keys())
+                model_state_dict.update(model_orig_weight)
                 model.load_state_dict(model_state_dict)
             optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         print(f"\n--- Pruning Level [{ITE}:{_ite}/{ITERATION}]: ---")
