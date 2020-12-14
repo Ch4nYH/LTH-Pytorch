@@ -132,12 +132,12 @@ def main(args, ITE=0):
     dump_dir = args.dump_dir if args.dump_dir else f"{os.getcwd()}/dumps/lt/{args.arch_type}/{args.dataset}/"
 
     for _ite in range(args.start_iter, ITERATION):
-        if not _ite == 0:
+        if not _ite != 0:
             utils.pruning_generate(model, args.prune_percent, method=args.pruning_method)
             if reinit:
                 model.apply(weight_init)
             else:
-                model_state_dict = utils.rewind_weight(initial_state_dict, model.state_dict())
+                model_state_dict = utils.rewind_weight(model.state_dict(), initial_state_dict,)
                 model.load_state_dict(model_state_dict)
             optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         print(f"\n--- Pruning Level [{ITE}:{_ite}/{ITERATION}]: ---")
