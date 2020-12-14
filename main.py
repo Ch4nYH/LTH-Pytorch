@@ -133,7 +133,7 @@ def main(args, ITE=0):
 
     for _ite in range(args.start_iter, ITERATION):
         if not _ite == 0:
-            utils.pruning_generate(model, args.prune_percent)
+            utils.pruning_generate(model, args.prune_percent, method=args.pruning_method)
             if reinit:
                 model.apply(weight_init)
             else:
@@ -342,7 +342,7 @@ if __name__=="__main__":
     parser.add_argument('--output_dir', type=str, default=None, help='output dir')
     parser.add_argument('--plot_dir', type=str, default=None, help='plot dir')
     parser.add_argument('--dump_dir', type=str, default=None, help='dump dir')
-
+    parser.add_argument('--pruning-method', type=str, default='l1')
     args = parser.parse_args()
 
 
