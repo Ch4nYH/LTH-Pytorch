@@ -98,7 +98,10 @@ def main(args, ITE=0):
         pbar = tqdm(range(args.end_iter))
         for iter_ in pbar:
             if iter_ % args.valid_freq == 0:
-                print(model.classifier[8].weight_orig)
+                if _ite > 0:
+                    print(model.classifier[8].weight_orig)
+                else:
+                    print(model.classifier[8].weight)
                 accuracy = test(model, test_loader, criterion)
                 if accuracy > best_accuracy:
                     best_accuracy = accuracy
