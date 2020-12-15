@@ -329,7 +329,7 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr",default= 1.2e-3, type=float, help="Learning rate")
     parser.add_argument("--weight_decay",default=1e-4, type=float, help="Weight decay")
-    parser.add_argument("--batch_size", default=60, type=int)
+    parser.add_argument("--batch_size", default=512, type=int)
     parser.add_argument("--start_iter", default=0, type=int)
     parser.add_argument("--end_iter", default=100, type=int)
     parser.add_argument("--print_freq", default=1, type=int)

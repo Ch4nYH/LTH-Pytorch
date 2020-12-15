@@ -53,10 +53,8 @@ def train(model, train_loader, optimizer, criterion):
     EPS = 1e-6
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.train()
-    for i in range(20):
-        (imgs, targets) = next(iter(train_loader))
+    for (imgs, targets) in tqdm(train_loader):
         optimizer.zero_grad()
-        #imgs, targets = next(train_loader)
         imgs, targets = imgs.to(device), targets.to(device)
         output = model(imgs)
         train_loss = criterion(output, targets)
@@ -100,11 +98,12 @@ def pruning_generate_percent(model,px,method='l1'):
         )
 
 i = 1
-m4 = torch.load("mnist_1/mnist_random/{}_model_lt.pth.tar".format(i), map_location="cpu")
+m4 = torch.load("mnist_1/mnist/{}_model_lt.pth.tar".format(i), map_location="cpu")
+#m5 = torch.load("mnist_1/mnist/initial_state_dict_lt.pth.tar", map_location="cpu")
 m3 = copy.deepcopy(m4.state_dict())   
 #pruning_generate_percent(m4, 0.99, method="random")
 see_remain_rate(m4)
-optimizer = torch.optim.Adam(m4.parameters(), lr=0.1)
+optimizer = torch.optim.Adam(m4.parameters(), lr=1)
 train(m4, train_loader, optimizer, criterion)
 m4 = m4.state_dict()
 for key in m3.keys():
@@ -113,7 +112,6 @@ for key in m3.keys():
         diff = m4[key] - m3[key]
         weight_copy[(diff != 0) * (m3[key[:-5] + "_mask"] != 0)] = 0
         weight_copy[(diff == 0) * (m3[key[:-5] + "_mask"] != 0)] = 1
-       
         weight_copy[m3[key[:-5] + "_mask"] == 0] = 0
         print("{} ({}%)".format(int(torch.sum(weight_copy).item()), round(int(torch.sum(weight_copy).item()) * 100.0 /  int(torch.sum((m3[key[:-5] + "_mask"] != 0)).item())  )))
         plt.figure()
