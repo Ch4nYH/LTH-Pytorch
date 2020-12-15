@@ -68,7 +68,7 @@ def pruning_generate(model, state_dict):
     parameters_to_prune =[]
     for (name, m) in model.named_modules():
         if isinstance(m, nn.Linear):
-            m = prune.custom_from_mask(m, name = 'weight', mask = (state_dict[name + '.weight'] != 0))
+            m = prune.custom_from_mask(m, name = 'weight', mask = (state_dict[name + '.weight_mask'] != 0))
   
 
 i = 1
@@ -79,15 +79,14 @@ optimizer = torch.optim.Adam(m4.parameters(), lr=0.1)
 train(m4, train_loader, optimizer, criterion)
 m4 = m4.state_dict()
 for key in m3.keys():
-    if 'weight' in key:
+    if 'orig' in key:
         weight_copy = copy.deepcopy(m3[key])
-        try:
-            diff = m4[key] - m3[key]
-        except:
-            diff = m4[key + "_orig"] * m4[key + "_mask"] - m3[key]
-        weight_copy[(diff == 0) * (m4[key + "_mask"] == 0)] = 1
-        weight_copy[(diff == 0) * (m4[key + "_mask"] != 0)] = 1
-        weight_copy[m4[key + "_mask"] != 0] = 0
+        diff = m4[key] - m3[key]
+        weight_copy[(diff == 0) * (m4[key[:-5] + "_mask"] == 0)] = 1
+        weight_copy[(diff == 0) * (m4[key[:-5] + "_mask"] != 0)] = 1
+       
+        weight_copy[m4[key[:-5] + "_mask"] != 0] = 0
+        print(torch.sum(weight_copy).item())
         plt.figure()
         plt.imshow(weight_copy.numpy())
         if not os.path.exists("vis_3/{}".format(key)):

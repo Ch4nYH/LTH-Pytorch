@@ -162,7 +162,10 @@ def main(args, ITE=0):
                     torch.save(model,os.path.join(output_dir, f"{_ite}_model_{args.prune_type}.pth.tar"))
 
             # Training
-            loss = train(model, train_loader, optimizer, criterion)
+            if not args.pruning_method == 'random':
+                loss = train(model, train_loader, optimizer, criterion)
+            else:
+                loss = 100
             all_loss[iter_] = loss
             all_accuracy[iter_] = accuracy
             
