@@ -85,7 +85,7 @@ def main(args, ITE=0):
 
     dump_dir = args.dump_dir if args.dump_dir else f"{os.getcwd()}/dumps/lt/{args.arch_type}/{args.dataset}/"
 
-    for _ite in range(args.start_iter, args.prune_iterations):
+    for _ite in range(args.start_iter, args.prune_iterations+1):
         best_accuracy = 0
         if not _ite == 0:
             utils.pruning_generate(model, 0.2, method=args.pruning_method)
