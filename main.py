@@ -143,7 +143,7 @@ def main(args, ITE=0):
         print(f"\n--- Pruning Level [{ITE}:{_ite}/{ITERATION}]: ---")
 
         # Print the table of Nonzeros in each layer
-        comp[_ite] = comp1
+        # comp[_ite] = comp1
         pbar = tqdm(range(args.end_iter))
 
         for iter_ in pbar:
@@ -171,7 +171,7 @@ def main(args, ITE=0):
                 pbar.set_description(
                     f'Train Epoch: {iter_}/{args.end_iter} Loss: {loss:.6f} Accuracy: {accuracy:.2f}% Best Accuracy: {best_accuracy:.2f}%')       
 
-        writer.add_scalar('Accuracy/test', best_accuracy, comp1)
+        #writer.add_scalar('Accuracy/test', best_accuracy, comp1)
         bestacc[_ite]=best_accuracy
 
         # Plotting Loss (Training), Accuracy (Testing), Iteration Curve
@@ -186,13 +186,13 @@ def main(args, ITE=0):
         plt.grid(color="gray") 
         plot_dir = args.plot_dir if args.plot_dir else f"{os.getcwd()}/plots/lt/{args.arch_type}/{args.dataset}/"
         utils.checkdir(plot_dir)
-        plt.savefig(os.path.join(plot_dir, f"{args.prune_type}_LossVsAccuracy_{comp1}.png"), dpi=1200) 
+        #plt.savefig(os.path.join(plot_dir, f"{args.prune_type}_LossVsAccuracy_{comp1}.png"), dpi=1200) 
         plt.close()
 
         # Dump Plot values
         utils.checkdir(dump_dir)
-        all_loss.dump(os.path.join(dump_dir, f"{args.prune_type}_all_loss_{comp1}.dat"))
-        all_accuracy.dump(os.path.join(dump_dir, f"{args.prune_type}_all_accuracy_{comp1}.dat"))
+        #all_loss.dump(os.path.join(dump_dir, f"{args.prune_type}_all_loss_{comp1}.dat"))
+        #all_accuracy.dump(os.path.join(dump_dir, f"{args.prune_type}_all_accuracy_{comp1}.dat"))
         
         # Making variables into 0
         best_accuracy = 0
