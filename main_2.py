@@ -99,9 +99,10 @@ def main(args, ITE=0):
         for iter_ in pbar:
             if iter_ % args.valid_freq == 0:
                 if _ite > 0:
-                    print(model.classifier[8].weight_orig)
+                    print(model.classifier[8].weight_orig[0,:5])
+                    print(model.classifier[8].weight_mask[0,:5])
                 else:
-                    print(model.classifier[8].weight)
+                    print(model.classifier[8].weight[0,:5])
                 accuracy = test(model, test_loader, criterion)
                 if accuracy > best_accuracy:
                     best_accuracy = accuracy
