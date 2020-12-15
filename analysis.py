@@ -98,7 +98,7 @@ def pruning_generate_percent(model,px,method='l1'):
         )
 
 i = 1
-m4 = torch.load("mnist_1/mnist/{}_model_lt.pth.tar".format(i), map_location="cpu")
+m4 = torch.load("mnist_1/mnist/{}_model_init_lt.pth.tar".format(i), map_location="cpu")
 #m5 = torch.load("mnist_1/mnist/initial_state_dict_lt.pth.tar", map_location="cpu")
 m3 = copy.deepcopy(m4.state_dict())   
 #pruning_generate_percent(m4, 0.99, method="random")
