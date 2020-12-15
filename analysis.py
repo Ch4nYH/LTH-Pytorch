@@ -49,25 +49,11 @@ for i in range(10):
     print(total_weight)
     print(pruned_weight)
 
-m4 = torch.load("mnist_1/initial_state_dict_lt.pth.tar", map_location="cpu")
-print(m4.classifier[0].weight.shape)
-m4.classifier[2].weight.data[:, 0] = 0
-m4.classifier[2].weight.data[0, :] = 0
-m4.classifier[2].weight.data[:, 1] = 0
-m4.classifier[2].requires_grad = True
-m3 = copy.deepcopy(m4.state_dict())
-def pruning_generate(model, state_dict):
-    parameters_to_prune =[]
-    for (name, m) in model.named_modules():
-        if isinstance(m, nn.Linear):
-            m = prune.custom_from_mask(m, name = 'weight', mask = (state_dict[name + '.weight'] != 0))
-pruning_generate(m4, m3)
-i = 0
 def train(model, train_loader, optimizer, criterion):
     EPS = 1e-6
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.train()
-    for i in range(10):
+    for i in range(5):
         (imgs, targets) = next(iter(train_loader))
         optimizer.zero_grad()
         #imgs, targets = next(train_loader)
@@ -75,13 +61,22 @@ def train(model, train_loader, optimizer, criterion):
         output = model(imgs)
         train_loss = criterion(output, targets)
         train_loss.backward()
-        print(model.classifier[0].weight_orig.grad)
         optimizer.step()
     return train_loss.item()
 
-optimizer = torch.optim.Adam(m4.parameters(), lr=1)
+def pruning_generate(model, state_dict):
+    parameters_to_prune =[]
+    for (name, m) in model.named_modules():
+        if isinstance(m, nn.Linear):
+            m = prune.custom_from_mask(m, name = 'weight', mask = (state_dict[name + '.weight'] != 0))
+  
+
+i = 1
+m4 = torch.load("mnist_1/{}_model_lt.pth.tar".format(i), map_location="cpu")
+m3 = copy.deepcopy(m4.state_dict())   
+pruning_generate(m4, m3)
+optimizer = torch.optim.Adam(m4.parameters(), lr=0.1)
 train(m4, train_loader, optimizer, criterion)
-m3 = copy.deepcopy(m4.state_dict())
 m4 = m4.state_dict()
 for key in m3.keys():
     if 'weight' in key:
@@ -93,8 +88,6 @@ for key in m3.keys():
         weight_copy[(diff == 0) * (m4[key + "_mask"] == 0)] = 1
         weight_copy[(diff == 0) * (m4[key + "_mask"] != 0)] = 1
         weight_copy[m4[key + "_mask"] != 0] = 0
-        print(weight_copy)
-        print(weight_copy.shape)
         plt.figure()
         plt.imshow(weight_copy.numpy())
         if not os.path.exists("vis_3/{}".format(key)):

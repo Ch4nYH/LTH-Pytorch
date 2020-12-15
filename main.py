@@ -133,7 +133,7 @@ def main(args, ITE=0):
 
     for _ite in range(args.start_iter, ITERATION):
         if not _ite == 0:
-            utils.pruning_generate(model, args.prune_percent, method=args.pruning_method)
+            utils.pruning_generate(model, 0.2, method=args.pruning_method)
             if reinit:
                 model.apply(weight_init)
             else:
