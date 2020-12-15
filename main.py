@@ -35,7 +35,6 @@ sns.set_style('darkgrid')
 # Main
 def main(args, ITE=0):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    reinit = True if args.prune_type=="reinit" else False
 
     # Data Loader
     transform=transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.1307,), (0.3081,))])
@@ -96,16 +95,11 @@ def main(args, ITE=0):
 
     # Copying and Saving Initial State
     output_dir = args.output_dir if args.output_dir else f"{os.getcwd()}/saves/{args.arch_type}/{args.dataset}/"
-    if args.initial_state_dict:
-        assert isinstance(args.initial_state_dict, str)
-        initial_state_dict = torch.load(args.initial_state_dict)
-        model.load_state_dict(initial_state_dict)
-        use_model = True
-    else:
-        initial_state_dict = copy.deepcopy(model.state_dict())
-        use_model = False
+    
+    initial_state_dict = copy.deepcopy(model.state_dict())
+    use_model = False
     utils.checkdir(output_dir)
-    torch.save(model, os.path.join(output_dir, f"initial_state_dict_{args.prune_type}.pth.tar"))
+    torch.save(model.state_dict(), os.path.join(output_dir, f"initial_state_dict_{args.prune_type}.pth.tar"))
 
     # Making Initial Mask
     # make_mask(model, use_model)
@@ -138,8 +132,9 @@ def main(args, ITE=0):
             model_orig_weight = utils.rewind_weight(initial_state_dict, model_state_dict.keys())
             model_state_dict.update(model_orig_weight)
             model.load_state_dict(model_state_dict)
-            torch.save(model, os.path.join(output_dir, f"{_ite}_model_init_{args.prune_type}.pth.tar"))
+            torch.save(model.state_dict(), os.path.join(output_dir, f"{_ite}_model_init_{args.prune_type}.pth.tar"))
             optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+
         print(f"\n--- Pruning Level [{ITE}:{_ite}/{ITERATION}]: ---")
 
         # Print the table of Nonzeros in each layer
@@ -156,7 +151,7 @@ def main(args, ITE=0):
                 if accuracy > best_accuracy:
                     best_accuracy = accuracy
                     utils.checkdir(output_dir)
-                    torch.save(model,os.path.join(output_dir, f"{_ite}_model_{args.prune_type}.pth.tar"))
+                    torch.save(model.state_dict(),os.path.join(output_dir, f"{_ite}_model_{args.prune_type}.pth.tar"))
 
             # Training
             if not args.pruning_method == 'random':
