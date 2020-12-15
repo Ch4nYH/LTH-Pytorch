@@ -105,7 +105,7 @@ def main(args, ITE=0):
     # make_mask(model, use_model)
 
     # Optimizer and Loss
-    optimizer = torch.optim.Adam(model.parameters(), weight_decay=args.weight_decay)
+    optimizer = torch.optim.Adam(model.parameters(), weight_decay=0)
     criterion = nn.CrossEntropyLoss() # Default was F.nll_loss
 
     # Layer Looper
