@@ -53,7 +53,7 @@ def train(model, train_loader, optimizer, criterion):
     EPS = 1e-6
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.train()
-    for i in range(5):
+    for i in range(20):
         (imgs, targets) = next(iter(train_loader))
         optimizer.zero_grad()
         #imgs, targets = next(train_loader)
@@ -70,11 +70,40 @@ def pruning_generate(model, state_dict):
         if isinstance(m, nn.Linear):
             m = prune.custom_from_mask(m, name = 'weight', mask = (state_dict[name + '.weight_mask'] != 0))
   
+def see_remain_rate(model):
+    sum_list = 0
+    zero_sum = 0
+    for m in model.modules():
+        if isinstance(m, nn.Linear):
+            sum_list = sum_list+float(m.weight.nelement())
+            zero_sum = zero_sum+float(torch.sum(m.weight == 0))     
+    print('remain weight = ', 100*(1-zero_sum/sum_list),'%')
+
+
+def pruning_generate_percent(model,px,method='l1'):
+    parameters_to_prune =[]
+    for m in model.modules():
+        if isinstance(m, nn.Linear):
+            parameters_to_prune.append((m,'weight'))
+    parameters_to_prune = tuple(parameters_to_prune)
+    if method=='l1':
+        prune.global_unstructured(
+            parameters_to_prune,
+            pruning_method=prune.L1Unstructured,
+            amount=px,
+        )
+    elif method=='random':
+        prune.global_unstructured(
+            parameters_to_prune,
+            pruning_method=prune.RandomUnstructured,
+            amount=px,
+        )
 
 i = 1
-m4 = torch.load("mnist_1/{}_model_lt.pth.tar".format(i), map_location="cpu")
+m4 = torch.load("mnist_1/mnist_random/{}_model_lt.pth.tar".format(i), map_location="cpu")
 m3 = copy.deepcopy(m4.state_dict())   
-pruning_generate(m4, m3)
+#pruning_generate_percent(m4, 0.99, method="random")
+see_remain_rate(m4)
 optimizer = torch.optim.Adam(m4.parameters(), lr=0.1)
 train(m4, train_loader, optimizer, criterion)
 m4 = m4.state_dict()
@@ -82,16 +111,19 @@ for key in m3.keys():
     if 'orig' in key:
         weight_copy = copy.deepcopy(m3[key])
         diff = m4[key] - m3[key]
-        weight_copy[(diff == 0) * (m4[key[:-5] + "_mask"] == 0)] = 1
-        weight_copy[(diff == 0) * (m4[key[:-5] + "_mask"] != 0)] = 1
+        weight_copy[(diff != 0) * (m3[key[:-5] + "_mask"] != 0)] = 0
+        weight_copy[(diff == 0) * (m3[key[:-5] + "_mask"] != 0)] = 1
        
-        weight_copy[m4[key[:-5] + "_mask"] != 0] = 0
-        print(torch.sum(weight_copy).item())
+        weight_copy[m3[key[:-5] + "_mask"] == 0] = 0
+        print("{} ({}%)".format(int(torch.sum(weight_copy).item()), round(int(torch.sum(weight_copy).item()) * 100.0 /  int(torch.sum((m3[key[:-5] + "_mask"] != 0)).item())  )))
         plt.figure()
         plt.imshow(weight_copy.numpy())
         if not os.path.exists("vis_3/{}".format(key)):
             os.mkdir("vis_3/{}".format(key))
         plt.savefig("vis_3/{}/{}.png".format(key,i))
+        plt.figure()
+        plt.imshow(m3[key[:-5] + "_mask"].numpy())
+        plt.savefig("vis_3/{}/{}_mask.png".format(key,i))
 
 for i in range(10):
     model2 = torch.load("mnist_1/{}_model_lt.pth.tar".format(i), map_location="cpu")
@@ -119,4 +151,14 @@ for i in range(10):
                 os.mkdir("vis_2/{}".format(key))
             plt.savefig("vis_2/{}/{}.png".format(key,i))
 
+
+    
+def see_remain_rate_orig(model):
+    sum_list = 0
+    zero_sum = 0
+    for m in model.modules():
+        if isinstance(m, nn.Linear):
+            sum_list = sum_list+float(m.weight_mask.nelement())
+            zero_sum = zero_sum+float(torch.sum(m.weight_mask == 0))     
+    print('remain weight = ', 100*(1-zero_sum/sum_list),'%')
 

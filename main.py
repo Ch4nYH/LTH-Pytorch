@@ -141,6 +141,7 @@ def main(args, ITE=0):
                 model_orig_weight = utils.rewind_weight(initial_state_dict, model_state_dict.keys())
                 model_state_dict.update(model_orig_weight)
                 model.load_state_dict(model_state_dict)
+                torch.save(model, os.path.join(output_dir, f"{_ite}_model_init_{args.prune_type}.pth.tar"))
             optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         print(f"\n--- Pruning Level [{ITE}:{_ite}/{ITERATION}]: ---")
 
