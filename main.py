@@ -143,7 +143,6 @@ def main(args, ITE=0):
         print(f"\n--- Pruning Level [{ITE}:{_ite}/{ITERATION}]: ---")
 
         # Print the table of Nonzeros in each layer
-        comp1 = utils.print_nonzeros(model)
         comp[_ite] = comp1
         pbar = tqdm(range(args.end_iter))
 
@@ -222,7 +221,6 @@ def main(args, ITE=0):
 
 # Function for Training
 def train(model, train_loader, optimizer, criterion):
-    EPS = 1e-6
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.train()
     for batch_idx, (imgs, targets) in enumerate(train_loader):

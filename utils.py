@@ -79,7 +79,6 @@ def plot_train_test_stats(stats,
 
 
 def rewind_weight(model_dict, target_model_dict_keys):
-
     new_dict = {}
     for key in target_model_dict_keys:
         if 'mask' not in key:
@@ -88,7 +87,6 @@ def rewind_weight(model_dict, target_model_dict_keys):
             else:
                 ori_key = key 
             new_dict[key] = model_dict[ori_key]
-
     return new_dict
 
 def pruning_generate(model,px, method='l1'):
