@@ -133,7 +133,7 @@ def main(args, ITE=0):
 
     for _ite in range(args.start_iter, ITERATION):
         if not _ite == 0:
-            utils.pruning_generate(model, 0.2, method=args.pruning_method)
+            utils.pruning_generate(model, 0.9, method=args.pruning_method)
             model_state_dict = model.state_dict()
             model_orig_weight = utils.rewind_weight(initial_state_dict, model_state_dict.keys())
             model_state_dict.update(model_orig_weight)
